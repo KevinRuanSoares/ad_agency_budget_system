@@ -115,13 +115,27 @@ wait-for-db: ## Wait for database to be ready
 	@timeout 60 bash -c 'until docker-compose -f $(COMPOSE_FILE) exec $(DB_SERVICE) pg_isready -U adagency -d adagency; do sleep 1; done'
 
 ## Testing
+test-django: ## Run Django unit tests
+	@echo '$(GREEN)Running Django unit tests...$(NC)'
+	docker-compose -f $(COMPOSE_FILE) exec $(DJANGO_SERVICE) python manage.py test
+
+test-django-verbose: ## Run Django unit tests with verbose output
+	@echo '$(GREEN)Running Django unit tests (verbose)...$(NC)'
+	docker-compose -f $(COMPOSE_FILE) exec $(DJANGO_SERVICE) python manage.py test --verbosity=2
+
+test-coverage: ## Run tests with coverage report
+	@echo '$(GREEN)Running tests with coverage...$(NC)'
+	docker-compose -f $(COMPOSE_FILE) exec $(DJANGO_SERVICE) python manage.py test --with-coverage
+
 setup-test-data: ## Setup initial test data
 	@echo '$(GREEN)Setting up test data...$(NC)'
 	docker-compose -f $(COMPOSE_FILE) exec $(DJANGO_SERVICE) python manage.py test_budget_system --test setup
 
-test-full: ## Run comprehensive test suite
-	@echo '$(GREEN)Running full test suite...$(NC)'
+test-integration: ## Run integration test suite
+	@echo '$(GREEN)Running integration test suite...$(NC)'
 	docker-compose -f $(COMPOSE_FILE) exec $(DJANGO_SERVICE) python manage.py test_budget_system --test full
+
+test-all: test-django test-integration ## Run all tests (Django + Integration)
 
 test-spend: ## Test spend tracking (usage: make test-spend BRAND="Test Brand A" AMOUNT=100)
 	@echo '$(GREEN)Testing spend tracking...$(NC)'
@@ -227,7 +241,7 @@ clean-all: ## Remove all Docker resources including volumes
 	docker system prune -a -f --volumes
 
 ## Quick Actions
-quick-test: setup-test-data simulate-spend test-dayparting ## Setup data, simulate spend, and test dayparting
+quick-test: setup-test-data simulate-spend test-dayparting test-django ## Setup data, simulate spend, test dayparting and run unit tests
 
 demo: ## Run a demonstration of the system
 	@echo '$(CYAN)Starting demo...$(NC)'
